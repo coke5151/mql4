@@ -94,7 +94,7 @@ int OnCalculate(const int rates_total,
 
     ArrayInitialize(LineBuffer, MarginCallPrice);
     ArrayInitialize(LineBuffer2, AddCashLinePrice);
-    UpdateLine(labelNameMarginCallLine, "爆倉線", MarginCallPrice);
+    UpdateLine(labelNameMarginCallLine, StringFormat("爆倉線 (%.2lf%%)", GetMarginStopOutPercentage()), MarginCallPrice);
     UpdateLine(labelNameAddCashLine, StringFormat("加 $%.2lf 後爆倉線", AddCash), AddCashLinePrice);
 //--- return value of prev_calculated for next call
     return(rates_total);
@@ -151,11 +151,13 @@ double GetFixProfitRate()
     if(FixCurrency == "USD")
         return 1;
     else {
+        ResetLastError();
         double fixProfitRate = MarketInfo(FixCurrency, MODE_BID);
         // 進行錯誤處理，因為 FixCurrency 是使用者輸入，有可能有誤
         int lastError = GetLastError();
         if(lastError != 0 || fixProfitRate <= 0) {
             PrintFormat("獲取校正貨幣兌匯率時出現問題！請檢查你的 input 參數格式是否符合您交易商的格式。您的 input 為：\"%s\"；錯誤代碼：%d；MarketInfo 回傳值為 %lf", FixCurrency,lastError, fixProfitRate);
+            ResetLastError();
             return 1;
         }
         else {   // 沒出錯
@@ -192,7 +194,15 @@ double GetMarginMaintenance()
     else { // ACCOUNT_STOPOUT_MODE_MONEY
         return AccountInfoDouble(ACCOUNT_MARGIN_SO_SO);
     }
-
 }
 //+------------------------------------------------------------------+
+double GetMarginStopOutPercentage()
+{
+    if(AccountInfoInteger(ACCOUNT_MARGIN_SO_MODE) == ACCOUNT_STOPOUT_MODE_PERCENT) {
+        return AccountInfoDouble(ACCOUNT_MARGIN_SO_SO);
+    }
+    else { // ACCOUNT_STOPOUT_MODE_MONEY
+        return (AccountInfoDouble(ACCOUNT_MARGIN_SO_SO) / AccountInfoDouble(ACCOUNT_MARGIN)) * 100;
+    }
+}
 //+------------------------------------------------------------------+
